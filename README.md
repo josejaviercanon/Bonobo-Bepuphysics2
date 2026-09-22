@@ -1,42 +1,73 @@
-# bepuphysics v2
-<p align="center">
-<a href="https://www.youtube.com/watch?v=sfgC_eNx9M8" target="_blank"><img src="Documentation/images/youtubeLink.png" width="375" height="211" border="0" /></a>
-<a href="https://www.youtube.com/watch?v=tjtwSq3u6Dg" target="_blank"><img src="Documentation/images/youtubeLink24.png" width="375" height="211" border="0" /></a></p>
+# Bonobo.Bepuphysics2
 
-This is the repo for the bepuphysics v2 library, a complete rewrite of the C# 3d rigid body physics engine [BEPUphysics v1](https://github.com/bepu/bepuphysics1).
+Native AOT / WASM-compatible pure C# 3D physics library for the Bonobo Engine ecosystem.
+Forked from [bepuphysics v2](https://github.com/bepu/bepuphysics2) (Apache-2.0, Ross Nordby / Bepu Entertainment LLC).
 
-The BepuPhysics and BepuUtilities libraries target .NET 8 and should work on any supported platform. The demos application, Demos.sln, uses DX11 by default. There is also a Demos.GL.sln that uses OpenGL and should run on other platforms. The demos can be run from the command line (in the repo root directory) with `dotnet run --project Demos/Demos.csproj -c Release` or `dotnet run --project Demos.GL/Demos.csproj -c Release`.
+- **Namespaces:** `Bonobo.Bepuphysics2` (physics) and `Bonobo.BepuUtilities` (math, memory, task scheduling).
+- **Package:** single NuGet package `Bonobo.Bepuphysics2` (bundles `Bonobo.BepuUtilities.dll` plus XML docs), version `1.0.0`.
+- **Target:** .NET 10, `LangVersion` 14, `IsAotCompatible=true`, unsigned assemblies, zero external NuGet dependencies.
 
-The physics engine heavily uses `System.Numerics.Vectors` types, so to get good performance, you'll need a compiler which can consume those types (like RyuJIT).
+## Install
 
-To build the source, the easiest option is a recent version of Visual Studio with the .NET desktop development workload installed. Demos.sln references all relevant projects. For more information, see [Building](Documentation/Building.md).
+```powershell
+dotnet add package Bonobo.Bepuphysics2 --version 1.0.0 --source X:\DEVSERVER\Nuget
+```
 
-## Features
+## Usage
 
-- Spheres, capsules, boxes, triangles, cylinders, and convex hulls
-- Compounds of the above
-- Meshes
-- A [whole bunch of constraint types](BepuPhysics/Constraints/)
-- [Newts](Demos/Demos/NewtDemo.cs)
-- Linear and angular continuous collision detection
-- Extremely low cost sleep states for resting bodies
-- Efficient scene-wide ray and sweep queries
-- [Character controller example](Demos/Demos/Characters/CharacterDemo.cs)
-- At least somewhat extensible collision pipeline, with [example custom voxel collidable](Demos/Demos/CustomVoxelCollidableDemo.cs)
-- Highly nonidiomatic APIs
-- Super speediness
-- And a bunch of other miscellaneous stuff!
+```csharp
+using Bonobo.Bepuphysics2;
+using Bonobo.Bepuphysics2.Collidables;
+using Bonobo.Bepuphysics2.CollisionDetection;
+using Bonobo.BepuUtilities.Memory;
 
-## Links
+var pool = new BufferPool();
+var simulation = Simulation.Create(
+    pool,
+    new NarrowPhaseCallbacks(),
+    new PoseIntegratorCallbacks(new Vector3(0, -10, 0)),
+    new SolveDescription(8, 1));
 
-Report bugs [on the issues tab](../../issues). 
+// ... add bodies/statics ...
 
-Use the [discussions tab](../../discussions) for... discussions. And questions.
+// null dispatcher => deterministic, single-threaded, zero-allocation steady state.
+simulation.Timestep(1f / 60f);
+```
 
-There's a [discord server](https://discord.gg/ssa2XpY). I'll be focusing on github for long-form content, but if you like discord, you can discord. 
+A complete callbacks + body/static sample is in [`src/Bonobo.Bepu.AotProbe/Program.cs`](src/Bonobo.Bepu.AotProbe/Program.cs).
 
-[Documentation pages](https://docs.bepuphysics.com/) in a conventional form factor exist! (If I've broken the docs page, see the [raw repo versions](https://github.com/bepu/bepuphysics2/tree/master/Documentation) as a backup or [github pages](https://bepu.github.io/bepuphysics2/) if I just broke the domain redirect.) 
+## Bonobo Engine integration contract
 
-If you have too many dollars, I'm willing to consume them through [github sponsors](https://www.github.com/sponsors/RossNordby). Please do not give me any amount of money that feels even slightly painful. Development is not conditional on sponsorships, and I already have a goodly number of dollars.
+- **Native AOT:** no `System.Reflection` / `Activator.CreateInstance` / dynamic IL on any path. Trim and AOT analyzers are clean; verified by a real native publish of the probe.
+- **Zero allocation per tick:** the null-dispatcher `Timestep` steady state allocates **0** managed bytes (asserted by the probe).
+- **Deterministic:** always call `Timestep(dt)` with a `null` `IThreadDispatcher` on the engine/WASM path.
+- **ECS-friendly data:** `BodyHandle` / `StaticHandle` are blittable structs; `Buffer<T>` implicitly converts to `Span<T>`, so pose state (`Bodies.ActiveSet.DynamicsState`) can be read zero-copy into the engine's `Float64` pinned transform buffer.
+- **No C# collision events:** implement `INarrowPhaseCallbacks` and accumulate contacts into preallocated buffers, then drain them after `Timestep`.
 
-![](https://raw.githubusercontent.com/bepu/bepuphysics1/master/Documentation/images/readme/angelduck.png)
+See [`docs/ecs-integration.md`](docs/ecs-integration.md) for the BonoboECS mapping and engine migration steps.
+
+## Build, pack, publish
+
+```powershell
+dotnet build src/Bonobo.Bepuphysics2.sln -c Release
+dotnet pack  src/Bonobo.Bepuphysics2/Bonobo.Bepuphysics2.csproj -c Release -o artifacts
+dotnet nuget push artifacts/Bonobo.Bepuphysics2.1.0.0.nupkg -s X:\DEVSERVER\Nuget
+```
+
+## Verification
+
+```powershell
+dotnet run     --project src/Bonobo.Bepu.AotProbe -c Release            # zero-alloc + null-dispatcher probe
+dotnet publish src/Bonobo.Bepu.AotProbe -c Release -r win-x64           # native AOT smoke test
+```
+
+Native AOT publish on Windows requires `vswhere.exe` on `PATH` (`C:\Program Files (x86)\Microsoft Visual Studio\Installer`).
+
+## Documentation
+
+XML documentation is generated for both assemblies (`GenerateDocumentationFile=true`) and is packed into the NuGet package as the API reference.
+Conceptual docs from upstream live in [`docs/bepuphysics2/`](docs/bepuphysics2/) (GettingStarted, Substepping, PerformanceTips, ...).
+
+## License
+
+Apache-2.0. See [`LICENSE.md`](LICENSE.md) and [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).

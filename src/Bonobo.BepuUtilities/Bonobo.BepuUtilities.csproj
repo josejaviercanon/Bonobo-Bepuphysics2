@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Bonobo.BepuUtilities</AssemblyName>
+    <RootNamespace>Bonobo.BepuUtilities</RootNamespace>
+    <Description>Supporting utilities library for Bonobo.Bepuphysics2. Bundled inside the Bonobo.Bepuphysics2 package.</Description>
+    <Configurations>Debug;Release</Configurations>
+    <IsPackable>false</IsPackable>
+
+    <!-- CS1573 Parameter has no matching param tag in the XML comment for (but other parameters do) -->
+    <!-- CS1591 Missing XML comment for publicly visible type or member -->
+    <NoWarn>1573;1591</NoWarn>
+  </PropertyGroup>
+
+  <Import Project="..\..\CommonSettings.props" />
+
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Optimize>false</Optimize>
+    <DefineConstants>TRACE;DEBUG;CHECKMATH</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <Optimize>true</Optimize>
+    <DefineConstants>TRACE;RELEASE</DefineConstants>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>Bonobo.Bepu.AotProbe</AssemblyName>
+    <RootNamespace>Bonobo.Bepu.AotProbe</RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors>IL2026;IL2046;IL3050;IL3051;IL3052</WarningsAsErrors>
+    <NoWarn>1573;1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bonobo.Bepuphysics2\Bonobo.Bepuphysics2.csproj" />
+  </ItemGroup>
+
+</Project>

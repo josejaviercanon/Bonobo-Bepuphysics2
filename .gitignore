@@ -210,5 +210,13 @@ ModelManifest.xml
 .idea/
 
 # DocFX API Generated Pages
-Documentation/api/*
-Documentation/_site/*
+docs/**/api/*
+docs/**/_site/*
+
+# NuGet pack output
+artifacts/
+*.nupkg
+*.snupkg
+
+# Solution Items
+Temp/

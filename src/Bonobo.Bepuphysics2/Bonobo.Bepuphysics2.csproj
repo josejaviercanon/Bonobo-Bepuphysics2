@@ -1,0 +1,88 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Bonobo.Bepuphysics2</AssemblyName>
+    <RootNamespace>Bonobo.Bepuphysics2</RootNamespace>
+    <PackageId>Bonobo.Bepuphysics2</PackageId>
+    <Description>Native AOT, WASM-compatible pure C# 3D physics simulation library optimized for BonoboECS. Deterministic single-threaded solves, zero-allocation hot paths.</Description>
+    <Configurations>Debug;Release</Configurations>
+    <PackageTags>physics;3d;rigid body;real time;simulation;aot;wasm;ecs</PackageTags>
+    <IsPackable>true</IsPackable>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage</TargetsForTfmSpecificBuildOutput>
+    <!-- Bonobo.BepuUtilities ships inside this package's lib folder; do not emit it as a NuGet dependency. -->
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+
+    <!-- CS1573 Parameter has no matching param tag in the XML comment for (but other parameters do) -->
+    <!-- CS1591 Missing XML comment for publicly visible type or member -->
+    <!-- CA2014 Stackalloc in loop -->
+    <!-- NU5128: intentional, Bonobo.BepuUtilities is bundled into lib/ instead of declared as a dependency. -->
+    <NoWarn>1573;1591;CA2014;NU5128</NoWarn>
+  </PropertyGroup>
+
+  <Import Project="..\..\CommonSettings.props" />
+
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <Optimize>false</Optimize>
+    <DefineConstants>TRACE;DEBUG;CHECKMATH;PROFILE</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <Optimize>true</Optimize>
+    <DefineConstants>TRACE;RELEASE;PROFILE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bonobo.BepuUtilities\Bonobo.BepuUtilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="CollisionDetection\DepthRefiner.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>DepthRefiner.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Constraints\Contact\ContactConvexTypes.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ContactConvexTypes.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Constraints\Contact\ContactNonconvexTypes.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ContactNonconvexTypes.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="CollisionDetection\DepthRefiner.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>DepthRefiner.cs</LastGenOutput>
+    </None>
+    <None Update="Constraints\Contact\ContactConvexTypes.tt">
+      <LastGenOutput>ContactConvexTypes.cs</LastGenOutput>
+      <Generator>TextTemplatingFileGenerator</Generator>
+    </None>
+    <None Update="Constraints\Contact\ContactNonconvexTypes.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ContactNonconvexTypes.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <!-- Single combined package: place the referenced Bonobo.BepuUtilities output next to Bonobo.Bepuphysics2.dll. -->
+  <Target Name="CopyProjectReferencesToPackage" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths->WithMetadataValue('ReferenceSourceTarget', 'ProjectReference'))" />
+      <BuildOutputInPackage Include="$(TargetDir)Bonobo.BepuUtilities.xml" Condition="Exists('$(TargetDir)Bonobo.BepuUtilities.xml')" />
+      <BuildOutputInPackage Include="$(TargetDir)Bonobo.BepuUtilities.pdb" Condition="Exists('$(TargetDir)Bonobo.BepuUtilities.pdb')" />
+    </ItemGroup>
+  </Target>
+
+</Project>
